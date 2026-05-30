@@ -348,6 +348,13 @@ void tree_split(Con *con, orientation_t orientation) {
 
     Con *parent = con->parent;
 
+    if (config.smart_splitting &&
+        (parent->layout == L_SPLITH || parent->layout == L_SPLITV) &&
+        con_orientation(parent) == orientation) {
+        DLOG("smart_splitting: parent already matches orientation, skipping wrap\n");
+        return;
+    }
+
     /* Force re-rendering to make the indicator border visible. */
     con_force_split_parents_redraw(con);
 
