@@ -100,6 +100,45 @@ void restore_geometry(void) {
 }
 
 /*
+ * When config.smart_splitting is enabled, ensure that opening a new tiling
+ * window next to `target` splits it along its longer edge: a container wider
+ * than it is tall is split horizontally, otherwise vertically. This yields the
+ * dwindle-style automatic tiling some users expect, without a helper such as
+ * autotiling. The decision is based on `target`'s current on-screen rect, which
+ * is already valid because target is an existing, rendered window.
+ *
+ * No-ops (the new window is appended to the focused container as usual) when:
+ *  - smart splitting is disabled,
+ *  - `target` is not a real tiling window leaf (e.g. an empty workspace),
+ *  - `target` is floating,
+ *  - the parent is stacked/tabbed (we must not break those layouts), or
+ *  - the parent already has the desired orientation.
+ *
+ */
+static void smart_split_target(Con *target) {
+    if (!config.smart_splitting) {
+        return;
+    }
+    if (target == NULL || target->type != CT_CON || target->window == NULL ||
+        con_is_floating(target)) {
+        return;
+    }
+    Con *parent = target->parent;
+    if (parent == NULL ||
+        (parent->layout != L_SPLITH && parent->layout != L_SPLITV)) {
+        return;
+    }
+    const orientation_t want =
+        (target->rect.width > target->rect.height) ? HORIZ : VERT;
+    if (con_orientation(parent) == want) {
+        return;
+    }
+    DLOG("smart_splitting: splitting %p (%dx%d) to orientation %d\n",
+         target, target->rect.width, target->rect.height, want);
+    tree_split(target, want);
+}
+
+/*
  * Do some sanity checks and then reparent the window.
  *
  */
@@ -303,6 +342,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             }
 
             nc = con_descend_tiling_focused(assigned_ws);
+            smart_split_target(nc);
             DLOG("focused on ws %s: %p / %s\n", assigned_ws->name, nc, nc->name);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
@@ -325,6 +365,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
                  wm_desktop_ws, wm_desktop_ws->name, cwindow->wm_desktop);
 
             nc = con_descend_tiling_focused(wm_desktop_ws);
+            smart_split_target(nc);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
             } else {
@@ -334,6 +375,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             /* If it was started on a specific workspace, we want to open it there. */
             DLOG("Using workspace on which this application was started (%s)\n", startup_ws);
             nc = con_descend_tiling_focused(workspace_get(startup_ws));
+            smart_split_target(nc);
             DLOG("focused on ws %s: %p / %s\n", startup_ws, nc, nc->name);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
@@ -342,6 +384,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             }
         } else {
             /* If not, insert it at the currently focused position */
+            smart_split_target(focused);
             if (focused->type == CT_CON && con_accepts_window(focused)) {
                 LOG("using current container, focused = %p, focused->name = %s\n",
                     focused, focused->name);
