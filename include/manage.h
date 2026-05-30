@@ -21,6 +21,14 @@
 void manage_existing_windows(xcb_window_t root);
 
 /**
+ * Set by cmd_split() to inhibit smart_split_target() for the next managed
+ * window, so that an explicit "split h" / "split v" takes precedence over
+ * the automatic aspect-ratio heuristic.
+ *
+ */
+extern bool smart_split_inhibited;
+
+/**
  * Restores the geometry of each window by reparenting it to the root window
  * at the position of its frame.
  *

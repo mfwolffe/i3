@@ -9,6 +9,8 @@
  */
 #include "all.h"
 
+bool smart_split_inhibited = false;
+
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a
  * window whose background is ParentRelative under a window with a different depth.
@@ -118,6 +120,11 @@ void restore_geometry(void) {
  */
 static void smart_split_target(Con *target) {
     if (!config.smart_splitting) {
+        return;
+    }
+    if (smart_split_inhibited) {
+        DLOG("smart_splitting: inhibited by explicit split command, deferring\n");
+        smart_split_inhibited = false;
         return;
     }
     if (target == NULL || target->type != CT_CON || target->window == NULL ||
