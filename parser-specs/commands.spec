@@ -494,17 +494,30 @@ state SCRATCHPAD:
 # swap [container] [with] id <window>
 # swap [container] [with] con_id <con_id>
 # swap [container] [with] mark <mark>
+# swap workspace [with] output <direction|name>
 state SWAP:
   'container'
       ->
   'with'
       ->
+  'workspace'
+      -> SWAP_WORKSPACE
   mode = 'id', 'con_id', 'mark'
       -> SWAP_ARGUMENT
 
 state SWAP_ARGUMENT:
   arg = string
       -> call cmd_swap($mode, $arg)
+
+state SWAP_WORKSPACE:
+  'with'
+      ->
+  'output'
+      -> SWAP_WORKSPACE_OUTPUT
+
+state SWAP_WORKSPACE_OUTPUT:
+  output = word
+      -> call cmd_swap_workspace_with_output($output)
 
 state TITLE_FORMAT:
   format = string

@@ -186,3 +186,10 @@ Con *workspace_encapsulate(Con *ws);
  *
  */
 void workspace_move_to_output(Con *ws, Output *output);
+
+/**
+ * Atomically swap the visible workspace on the focused output with the visible
+ * workspace on the target output. Monitors stay fixed; workspaces move.
+ *
+ */
+void workspace_swap_with_output(Con *focused_ws, Output *target_output);

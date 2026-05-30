@@ -1158,3 +1158,62 @@ void workspace_move_to_output(Con *ws, Output *output) {
         break;
     }
 }
+
+void workspace_swap_with_output(Con *focused_ws, Output *target_output) {
+    Output *source_output = get_output_for_con(focused_ws);
+    if (source_output == target_output) {
+        return;
+    }
+
+    Con *source_content = output_get_content(source_output->con);
+    Con *target_content = output_get_content(target_output->con);
+    if (source_content == NULL || target_content == NULL) {
+        return;
+    }
+
+    Con *target_ws = NULL;
+    GREP_FIRST(target_ws, target_content, workspace_is_visible(child));
+    if (target_ws == NULL) {
+        return;
+    }
+
+    DLOG("Swapping workspace %s (output %s) with workspace %s (output %s)\n",
+         focused_ws->name, output_primary_name(source_output),
+         target_ws->name, output_primary_name(target_output));
+
+    Rect source_rect = source_content->rect;
+    Rect target_rect = target_content->rect;
+
+    con_detach(focused_ws);
+    con_detach(target_ws);
+
+    con_attach(focused_ws, target_content, false);
+    con_attach(target_ws, source_content, false);
+
+    Con *floating_con;
+    TAILQ_FOREACH (floating_con, &(focused_ws->floating_head), floating_windows) {
+        floating_fix_coordinates(floating_con, &source_rect, &target_rect);
+    }
+    TAILQ_FOREACH (floating_con, &(target_ws->floating_head), floating_windows) {
+        floating_fix_coordinates(floating_con, &target_rect, &source_rect);
+    }
+
+    Con *child;
+    TAILQ_FOREACH (child, &(source_content->nodes_head), nodes) {
+        child->fullscreen_mode = CF_NONE;
+    }
+    target_ws->fullscreen_mode = CF_OUTPUT;
+
+    TAILQ_FOREACH (child, &(target_content->nodes_head), nodes) {
+        child->fullscreen_mode = CF_NONE;
+    }
+    focused_ws->fullscreen_mode = CF_OUTPUT;
+
+    con_focus(con_descend_focused(target_ws));
+
+    output_push_sticky_windows(NULL);
+
+    ipc_send_workspace_event("move", focused_ws, NULL);
+    ipc_send_workspace_event("move", target_ws, NULL);
+    ewmh_update_desktop_properties();
+}

@@ -297,6 +297,12 @@ void cmd_scratchpad_show(I3_CMD);
 void cmd_swap(I3_CMD, const char *mode, const char *arg);
 
 /**
+ * Implementation of 'swap workspace [with] output <direction|name>'.
+ *
+ */
+void cmd_swap_workspace_with_output(I3_CMD, const char *output_name);
+
+/**
  * Implementation of 'title_format <format>'
  *
  */

@@ -2019,6 +2019,35 @@ void cmd_swap(I3_CMD, const char *mode, const char *arg) {
 }
 
 /*
+ * Implementation of 'swap workspace [with] output <direction|name>'.
+ *
+ */
+void cmd_swap_workspace_with_output(I3_CMD, const char *output_name) {
+    Con *focused_ws = con_get_workspace(focused);
+    if (focused_ws == NULL || con_is_internal(focused_ws)) {
+        yerror("Cannot swap internal workspace.");
+        return;
+    }
+
+    Output *current_output = get_output_for_con(focused_ws);
+    Output *target_output = get_output_from_string(current_output, output_name);
+    if (target_output == NULL) {
+        yerror("Could not find output \"%s\".", output_name);
+        return;
+    }
+
+    if (current_output == target_output) {
+        ysuccess(true);
+        return;
+    }
+
+    workspace_swap_with_output(focused_ws, target_output);
+
+    cmd_output->needs_tree_render = true;
+    ysuccess(true);
+}
+
+/*
  * Implementation of 'title_format <format>'
  *
  */
