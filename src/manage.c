@@ -110,7 +110,8 @@ void restore_geometry(void) {
  * No-ops (the new window is appended to the focused container as usual) when:
  *  - smart splitting is disabled,
  *  - `target` is not a real tiling window leaf (e.g. an empty workspace),
- *  - `target` is floating,
+ *  - `target` is floating or fullscreen (restructuring the tree underneath a
+ *    fullscreen window would be surprising and its rect is the whole output),
  *  - the parent is stacked/tabbed (we must not break those layouts), or
  *  - the parent already has the desired orientation.
  *
@@ -120,7 +121,7 @@ static void smart_split_target(Con *target) {
         return;
     }
     if (target == NULL || target->type != CT_CON || target->window == NULL ||
-        con_is_floating(target)) {
+        con_is_floating(target) || target->fullscreen_mode != CF_NONE) {
         return;
     }
     Con *parent = target->parent;
