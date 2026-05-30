@@ -21,12 +21,14 @@
 void manage_existing_windows(xcb_window_t root);
 
 /**
- * Set by cmd_split() to inhibit smart_split_target() for the next managed
- * window, so that an explicit "split h" / "split v" takes precedence over
- * the automatic aspect-ratio heuristic.
+ * Set by cmd_split() to override smart_split_target() for the next managed
+ * window: HORIZ or VERT means "use this direction instead of the aspect-ratio
+ * heuristic"; NO_ORIENTATION means "no override, use smart splitting normally."
+ * When smart_splitting is enabled, cmd_split() sets this instead of calling
+ * tree_split(), so the manual split command doesn't create unnecessary nesting.
  *
  */
-extern bool smart_split_inhibited;
+extern orientation_t smart_split_override;
 
 /**
  * Restores the geometry of each window by reparenting it to the root window
