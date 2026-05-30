@@ -418,23 +418,6 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
                 LOG("using current container, focused = %p, focused->name = %s\n",
                     focused, focused->name);
                 nc = focused;
-            } else if (insert_at != NULL && focused->parent != insert_at) {
-                /* The override triggered a walk-up: the new window should be a
-                 * flat sibling at the ancestor level. Reparent the focused
-                 * window there first so it becomes a peer, then open the new
-                 * window beside it. */
-                Con *old_parent = focused->parent;
-                con_detach(focused);
-                con_attach(focused, insert_at, false);
-                con_fix_percent(old_parent);
-                con_fix_percent(insert_at);
-                /* Clean up the old parent if it became empty or redundant */
-                if (con_num_children(old_parent) == 0) {
-                    tree_close_internal(old_parent, DONT_KILL_WINDOW, false);
-                } else {
-                    tree_flatten(old_parent);
-                }
-                nc = tree_open_con(insert_at, cwindow);
             } else if (insert_at != NULL) {
                 nc = tree_open_con(insert_at, cwindow);
             } else {
