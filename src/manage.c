@@ -9,7 +9,7 @@
  */
 #include "all.h"
 
-orientation_t smart_split_override = NO_ORIENTATION;
+bool smart_split_inhibited = false;
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a
@@ -122,25 +122,22 @@ static void smart_split_target(Con *target) {
     if (!config.smart_splitting) {
         return;
     }
+    if (smart_split_inhibited) {
+        DLOG("smart_splitting: inhibited by explicit split command, deferring\n");
+        smart_split_inhibited = false;
+        return;
+    }
     if (target == NULL || target->type != CT_CON || target->window == NULL ||
         con_is_floating(target) || target->fullscreen_mode != CF_NONE) {
-        smart_split_override = NO_ORIENTATION;
         return;
     }
     Con *parent = target->parent;
     if (parent == NULL ||
         (parent->layout != L_SPLITH && parent->layout != L_SPLITV)) {
-        smart_split_override = NO_ORIENTATION;
         return;
     }
-    orientation_t want;
-    if (smart_split_override != NO_ORIENTATION) {
-        want = smart_split_override;
-        smart_split_override = NO_ORIENTATION;
-        DLOG("smart_splitting: using explicit override orientation %d\n", want);
-    } else {
-        want = (target->rect.width > target->rect.height) ? HORIZ : VERT;
-    }
+    const orientation_t want =
+        (target->rect.width > target->rect.height) ? HORIZ : VERT;
     if (con_orientation(parent) == want) {
         return;
     }

@@ -1183,8 +1183,6 @@ void cmd_split(I3_CMD, const char *direction) {
         }
 
         DLOG("matching: %p / %s\n", current->con, current->con->name);
-
-        orientation_t orient;
         if (direction[0] == 't') {
             layout_t current_layout;
             if (current->con->type == CT_WORKSPACE) {
@@ -1192,19 +1190,19 @@ void cmd_split(I3_CMD, const char *direction) {
             } else {
                 current_layout = current->con->parent->layout;
             }
-            orient = (current_layout == L_SPLITH) ? VERT : HORIZ;
+            /* toggling split orientation */
+            if (current_layout == L_SPLITH) {
+                tree_split(current->con, VERT);
+            } else {
+                tree_split(current->con, HORIZ);
+            }
         } else {
-            orient = (direction[0] == 'v' ? VERT : HORIZ);
-        }
-
-        if (config.smart_splitting) {
-            smart_split_override = orient;
-        } else {
-            tree_split(current->con, orient);
+            tree_split(current->con, (direction[0] == 'v' ? VERT : HORIZ));
         }
     }
 
     cmd_output->needs_tree_render = true;
+    smart_split_inhibited = true;
     // XXX: default reply for now, make this a better reply
     ysuccess(true);
 }
