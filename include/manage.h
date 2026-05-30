@@ -20,6 +20,8 @@
  */
 void manage_existing_windows(xcb_window_t root);
 
+extern bool smart_split_inhibited;
+
 /**
  * Restores the geometry of each window by reparenting it to the root window
  * at the position of its frame.

@@ -1202,6 +1202,7 @@ void cmd_split(I3_CMD, const char *direction) {
     }
 
     cmd_output->needs_tree_render = true;
+    smart_split_inhibited = true;
     // XXX: default reply for now, make this a better reply
     ysuccess(true);
 }
