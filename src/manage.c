@@ -118,20 +118,20 @@ void restore_geometry(void) {
  *  - the parent already has the desired orientation.
  *
  */
-static void smart_split_target(Con *target) {
+static Con *smart_split_target(Con *target) {
     if (!config.smart_splitting) {
-        return;
+        return NULL;
     }
     if (target == NULL || target->type != CT_CON || target->window == NULL ||
         con_is_floating(target) || target->fullscreen_mode != CF_NONE) {
         smart_split_override = NO_ORIENTATION;
-        return;
+        return NULL;
     }
     Con *parent = target->parent;
     if (parent == NULL ||
         (parent->layout != L_SPLITH && parent->layout != L_SPLITV)) {
         smart_split_override = NO_ORIENTATION;
-        return;
+        return NULL;
     }
     orientation_t want;
     if (smart_split_override != NO_ORIENTATION) {
@@ -141,12 +141,30 @@ static void smart_split_target(Con *target) {
         want = (target->rect.width > target->rect.height) ? HORIZ : VERT;
     }
     if (con_orientation(parent) == want) {
-        return;
+        return NULL;
+    }
+    if (smart_split_override != NO_ORIENTATION) {
+        /* The override doesn't match the immediate parent. Walk up to find
+         * an ancestor whose orientation DOES match, so the new window lands
+         * as a flat sibling at that level instead of creating nesting. */
+        Con *ancestor = parent->parent;
+        while (ancestor != NULL && ancestor->type != CT_WORKSPACE &&
+               (ancestor->layout != L_SPLITH && ancestor->layout != L_SPLITV)) {
+            ancestor = ancestor->parent;
+        }
+        if (ancestor != NULL &&
+            (ancestor->type == CT_WORKSPACE ||
+             con_orientation(ancestor) == want)) {
+            DLOG("smart_splitting: override active, inserting at ancestor %p (%s)\n",
+                 ancestor, ancestor->name);
+            return ancestor;
+        }
+        return NULL;
     }
     DLOG("smart_splitting: splitting %p (%dx%d) to orientation %d\n",
          target, target->rect.width, target->rect.height, want);
-    smart_split_override = NO_ORIENTATION;
     tree_split(target, want);
+    return NULL;
 }
 
 /*
@@ -353,7 +371,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             }
 
             nc = con_descend_tiling_focused(assigned_ws);
-            smart_split_target(nc);
+            (void)smart_split_target(nc);
             DLOG("focused on ws %s: %p / %s\n", assigned_ws->name, nc, nc->name);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
@@ -376,7 +394,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
                  wm_desktop_ws, wm_desktop_ws->name, cwindow->wm_desktop);
 
             nc = con_descend_tiling_focused(wm_desktop_ws);
-            smart_split_target(nc);
+            (void)smart_split_target(nc);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
             } else {
@@ -386,7 +404,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             /* If it was started on a specific workspace, we want to open it there. */
             DLOG("Using workspace on which this application was started (%s)\n", startup_ws);
             nc = con_descend_tiling_focused(workspace_get(startup_ws));
-            smart_split_target(nc);
+            (void)smart_split_target(nc);
             DLOG("focused on ws %s: %p / %s\n", startup_ws, nc, nc->name);
             if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
@@ -395,11 +413,13 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
             }
         } else {
             /* If not, insert it at the currently focused position */
-            smart_split_target(focused);
+            Con *insert_at = smart_split_target(focused);
             if (focused->type == CT_CON && con_accepts_window(focused)) {
                 LOG("using current container, focused = %p, focused->name = %s\n",
                     focused, focused->name);
                 nc = focused;
+            } else if (insert_at != NULL) {
+                nc = tree_open_con(insert_at, cwindow);
             } else {
                 nc = tree_open_con(NULL, cwindow);
             }
