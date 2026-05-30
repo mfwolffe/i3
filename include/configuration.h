@@ -211,6 +211,13 @@ struct Config {
      * decoration. Marks starting with a "_" will be ignored either way. */
     bool show_marks;
 
+    /** When enabled, a newly opened tiling window splits the focused container
+     * along its longer dimension (dwindle-style "smart splitting"): a container
+     * wider than it is tall splits horizontally, otherwise vertically. Disabled
+     * by default, which preserves i3's traditional behavior of appending the
+     * new window to the focused split container. */
+    bool smart_splitting;
+
     /** Title alignment options. */
     enum {
         ALIGN_LEFT,

@@ -208,6 +208,9 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
 
     config.show_marks = true;
 
+    /* Smart splitting is opt-in so the default behavior is unchanged. */
+    config.smart_splitting = false;
+
     config.default_border = BS_NORMAL;
     config.default_floating_border = BS_NORMAL;
     config.default_border_width = logical_px(2);

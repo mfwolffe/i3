@@ -51,6 +51,7 @@ state INITIAL:
   'focus_on_window_activation'             -> FOCUS_ON_WINDOW_ACTIVATION
   'title_align'                            -> TITLE_ALIGN
   'show_marks'                             -> SHOW_MARKS
+  'smart_splitting'                        -> SMART_SPLITTING
   'workspace'                              -> WORKSPACE
   'ipc_socket', 'ipc-socket'               -> IPC_SOCKET
   'ipc_kill_timeout'                       -> IPC_KILL_TIMEOUT
@@ -328,6 +329,11 @@ state TITLE_ALIGN:
 state SHOW_MARKS:
   value = word
       -> call cfg_show_marks($value)
+
+# smart_splitting
+state SMART_SPLITTING:
+  value = word
+      -> call cfg_smart_splitting($value)
 
 state FORCE_DISPLAY_URGENCY_HINT_MS:
   'ms'
