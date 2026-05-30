@@ -625,7 +625,11 @@ void tree_next(Con *con, direction_t direction) {
     }
 
     workspace_show(con_get_workspace(next));
-    con_activate(con_descend_focused(next));
+    Con *focus = con_descend_focused(next);
+    con_activate(focus);
+    if (config.mouse_warping == POINTER_WARPING_CONTAINER) {
+        x_set_warp_to(&(focus->rect));
+    }
 }
 
 /*

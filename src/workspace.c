@@ -555,7 +555,7 @@ void workspace_show(Con *workspace) {
 
     /* Set mouse pointer */
     Con *new_output = con_get_output(focused);
-    if (old_output != new_output) {
+    if (config.mouse_warping == POINTER_WARPING_CONTAINER || old_output != new_output) {
         x_set_warp_to(&next->rect);
     }
 

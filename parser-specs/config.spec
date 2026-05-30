@@ -281,7 +281,7 @@ state FOCUS_FOLLOWS_MOUSE:
 
 # mouse_warping warping_t
 state MOUSE_WARPING:
-  value = 'none', 'output'
+  value = 'none', 'output', 'container'
       -> call cfg_mouse_warping($value)
 
 # focus_wrapping
