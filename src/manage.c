@@ -397,6 +397,28 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
                     focused, focused->name);
                 nc = focused;
             } else {
+                /* If the user explicitly split (inhibit is set) and the focused
+                 * window is the sole child of a same-orientation wrapper,
+                 * promote it to the grandparent so the new window lands as a
+                 * flat peer with equal sizing. Only when inhibited — otherwise
+                 * smart splitting's dwindle nesting would be undone. */
+                Con *fp = focused->parent;
+                if (config.smart_splitting && smart_split_inhibited &&
+                    fp != NULL && fp->type == CT_CON &&
+                    con_num_children(fp) == 1 &&
+                    (fp->layout == L_SPLITH || fp->layout == L_SPLITV)) {
+                    Con *gp = fp->parent;
+                    if (gp != NULL &&
+                        (gp->type == CT_WORKSPACE ||
+                         ((gp->layout == L_SPLITH || gp->layout == L_SPLITV) &&
+                          con_orientation(gp) == con_orientation(fp)))) {
+                        DLOG("smart_splitting: promoting %p out of wrapper %p\n", focused, fp);
+                        con_detach(focused);
+                        con_attach(focused, gp, false);
+                        con_fix_percent(gp);
+                        tree_close_internal(fp, DONT_KILL_WINDOW, false);
+                    }
+                }
                 nc = tree_open_con(NULL, cwindow);
             }
         }
