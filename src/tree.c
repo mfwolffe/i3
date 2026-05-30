@@ -352,6 +352,23 @@ void tree_split(Con *con, orientation_t orientation) {
         (parent->layout == L_SPLITH || parent->layout == L_SPLITV) &&
         con_orientation(parent) == orientation) {
         DLOG("smart_splitting: parent already matches orientation, skipping wrap\n");
+        /* If the parent is a redundant same-orientation wrapper (single child,
+         * same orientation as grandparent), promote the child up so new windows
+         * land at the correct level with equal sizing. */
+        Con *grandparent = parent->parent;
+        if (con_num_children(parent) == 1 &&
+            grandparent != NULL &&
+            parent->type == CT_CON &&
+            (grandparent->layout == L_SPLITH || grandparent->layout == L_SPLITV ||
+             grandparent->type == CT_WORKSPACE) &&
+            (grandparent->type == CT_WORKSPACE ||
+             con_orientation(grandparent) == orientation)) {
+            DLOG("smart_splitting: promoting %p out of redundant wrapper %p\n", con, parent);
+            con_detach(con);
+            con_attach(con, grandparent, false);
+            con_fix_percent(grandparent);
+            tree_close_internal(parent, DONT_KILL_WINDOW, false);
+        }
         return;
     }
 
