@@ -136,7 +136,6 @@ static void smart_split_target(Con *target) {
     orientation_t want;
     if (smart_split_override != NO_ORIENTATION) {
         want = smart_split_override;
-        smart_split_override = NO_ORIENTATION;
         DLOG("smart_splitting: using explicit override orientation %d\n", want);
     } else {
         want = (target->rect.width > target->rect.height) ? HORIZ : VERT;
@@ -146,6 +145,7 @@ static void smart_split_target(Con *target) {
     }
     DLOG("smart_splitting: splitting %p (%dx%d) to orientation %d\n",
          target, target->rect.width, target->rect.height, want);
+    smart_split_override = NO_ORIENTATION;
     tree_split(target, want);
 }
 
