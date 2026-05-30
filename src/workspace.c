@@ -1209,7 +1209,7 @@ void workspace_swap_with_output(Con *focused_ws, Output *target_output) {
     }
     focused_ws->fullscreen_mode = CF_OUTPUT;
 
-    Con *focus_target = con_descend_focused(target_ws);
+    Con *focus_target = con_descend_focused(focused_ws);
     con_focus(focus_target);
     x_set_warp_to(&(focus_target->rect));
 
