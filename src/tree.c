@@ -594,6 +594,68 @@ handle_workspace:;
 }
 
 /*
+ * Returns whether two rectangles overlap on the axis perpendicular to the
+ * focus direction. Touching only at an edge or corner is not an overlap.
+ */
+static bool rects_overlap_perpendicular(const Rect first, const Rect second, direction_t direction) {
+    const bool horizontal = (direction == D_LEFT || direction == D_RIGHT);
+    const uint64_t first_start = horizontal ? first.y : first.x;
+    const uint64_t second_start = horizontal ? second.y : second.x;
+    const uint64_t first_end = first_start + (horizontal ? first.height : first.width);
+    const uint64_t second_end = second_start + (horizontal ? second.height : second.width);
+
+    return first_start < second_end && second_start < first_end;
+}
+
+/*
+ * Descends into a neighboring subtree while preserving the source container's
+ * position on the perpendicular axis. Focus history remains the tie breaker
+ * when more than one child overlaps the source.
+ */
+static Con *con_descend_direction_spatial(Con *con, direction_t direction, const Rect source_rect) {
+    const bool previous = position_from_direction(direction) == BEFORE;
+    const orientation_t orientation = orientation_from_direction(direction);
+
+    while (!TAILQ_EMPTY(&(con->nodes_head))) {
+        Con *next = NULL;
+
+        if (con->layout == L_TABBED || con->layout == L_STACKED) {
+            next = TAILQ_FIRST(&(con->focus_head));
+        } else if (con_orientation(con) == orientation) {
+            next = previous ? TAILQ_LAST(&(con->nodes_head), nodes_head)
+                            : TAILQ_FIRST(&(con->nodes_head));
+        } else {
+            Con *child;
+            TAILQ_FOREACH (child, &(con->focus_head), focused) {
+                if (child->type != CT_FLOATING_CON &&
+                    rects_overlap_perpendicular(source_rect, child->rect, direction)) {
+                    next = child;
+                    break;
+                }
+            }
+
+            /* Geometry can be unavailable during unusual tree transitions.
+             * Preserve the existing focus-history behavior as a fallback. */
+            if (!next) {
+                TAILQ_FOREACH (child, &(con->focus_head), focused) {
+                    if (child->type != CT_FLOATING_CON) {
+                        next = child;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!next) {
+            break;
+        }
+        con = next;
+    }
+
+    return con;
+}
+
+/*
  * Changes focus in the given direction
  *
  */
@@ -632,7 +694,7 @@ void tree_next(Con *con, direction_t direction) {
     }
 
     workspace_show(con_get_workspace(next));
-    Con *focus = con_descend_focused(next);
+    Con *focus = con_descend_direction_spatial(next, direction, con->rect);
     con_activate(focus);
     if (config.mouse_warping == POINTER_WARPING_CONTAINER) {
         x_set_warp_to(&(focus->rect));
